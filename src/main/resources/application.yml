@@ -46,3 +46,22 @@ resilience4j:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [correlationId=%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: pix-gatelayer-adapter
+    version: 1.0.0-SNAPSHOT
+    description: Anti-Corruption Layer para operações Pix via SOAP/Kafka

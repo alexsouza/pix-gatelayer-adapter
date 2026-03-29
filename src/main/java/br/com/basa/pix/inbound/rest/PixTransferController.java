@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @RestController
@@ -31,5 +32,14 @@ public class PixTransferController {
         TransferResponse response = pixTransferService.initiateTransfer(request, idempotencyKey, resolvedCorrelationId);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/transferencias/{transactionId}")
+    public ResponseEntity<TransferResponse> consultarTransferencia(@PathVariable String transactionId) {
+        try {
+            return ResponseEntity.ok(pixTransferService.getTransferStatus(transactionId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

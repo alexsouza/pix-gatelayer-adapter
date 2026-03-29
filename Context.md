@@ -89,13 +89,17 @@ Gere a classe `PixTransferKafkaProducer` no pacote `outbound.kafka` que recebe o
 ### Passo 4: Inbound (REST)
 
 Gere os DTOs `TransferRequest` (com Bean Validation: chavePix, valor) e `TransferResponse` (transactionId, status).
-Gere o `PixTransferController` recebendo um `POST /v1/pix/transferencias`.
+Gere o `PixTransferController` com os seguintes endpoints:
 
+**POST /v1/pix/transferencias**
 - Deve exigir o header `Idempotency-Key`.
-
 - Deve ler o header opcional `X-Correlation-Id`. Se não vier, gere um UUID.
-
 - Deve invocar o serviço para registar a intenção e retornar HTTP 202 (Accepted) imediatamente.
+
+**GET /v1/pix/transferencias/{transactionId}**
+- Consulta o status atual da transação.
+- Retorna HTTP 200 (OK) com `TransferResponse` (transactionId, status).
+- Retorna HTTP 404 (Not Found) se a transação não existir.
 
 ### Passo 5: Application (Service)
 
@@ -104,6 +108,8 @@ Gere o `PixTransferService`.
 - Um método `initiateTransfer` que salva no repositório como `PROCESSING` e chama o `PixTransferKafkaProducer` para enviar o evento para o Kafka, passando também o `correlationId`.
 
 - Um método `processTransfer` que será invocado pelo Listener do Kafka. Este método chama o adaptador SOAP e atualiza o status final para `COMPLETED` ou `FAILED`. Coloque o `correlationId` no `MDC` do SLF4J no início deste método.
+
+- Um método `getTransferStatus(String transactionId)` que busca a transação via `PixTransferRepository.findById` e retorna um `TransferResponse`. Lança `NoSuchElementException` se não encontrada.
 
 ### Passo 6: Inbound (Kafka Listener)
 
@@ -133,8 +139,10 @@ Gere a implementação `RedisPixTransferRepository` usando `RedisTemplate` para 
 
 Gere uma classe `PixTransferIntegrationTest` usando `@SpringBootTest`, `MockMvc`, `@EmbeddedKafka` e `@WireMockTest`.
 
-- Simule um POST no endpoint REST.
-
+- Simule um POST no endpoint REST e valide HTTP 202 Accepted.
+- Simule um POST sem `X-Correlation-Id` e valide HTTP 202 Accepted.
+- Simule um POST sem `chavePix` e valide HTTP 400 Bad Request.
+- Simule requisição duplicada por `Idempotency-Key` e valide HTTP 202 Accepted.
+- Simule um GET em `/v1/pix/transferencias/{transactionId}` com transação existente e valide HTTP 200 com `transactionId` e `status` corretos.
+- Simule um GET com `transactionId` inexistente e valide HTTP 404 Not Found.
 - Faça o stub no WireMock para a URL `/ws/pix` retornando um XML de sucesso SOAP.
-
-- Valide se o retorno HTTP é 202 Accepted.

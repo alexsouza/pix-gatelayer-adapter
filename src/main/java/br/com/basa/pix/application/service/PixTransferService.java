@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
@@ -43,6 +44,15 @@ public class PixTransferService {
             kafkaProducer.send(transfer);
         }
 
+        return TransferResponse.builder()
+                .transactionId(transfer.getTransactionId())
+                .status(transfer.getStatus())
+                .build();
+    }
+
+    public TransferResponse getTransferStatus(String transactionId) {
+        PixTransfer transfer = repository.findById(transactionId)
+                .orElseThrow(() -> new NoSuchElementException("Transação não encontrada: " + transactionId));
         return TransferResponse.builder()
                 .transactionId(transfer.getTransactionId())
                 .status(transfer.getStatus())

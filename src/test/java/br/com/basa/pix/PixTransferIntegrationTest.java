@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -141,5 +142,32 @@ class PixTransferIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void deveRetornar200ComStatusDaTransacao() throws Exception {
+        String transactionId = UUID.randomUUID().toString();
+        PixTransfer transfer = PixTransfer.builder()
+                .transactionId(transactionId)
+                .idempotencyKey(UUID.randomUUID().toString())
+                .correlationId(UUID.randomUUID().toString())
+                .chavePix("consulta@email.com")
+                .valor(BigDecimal.valueOf(200.00))
+                .status(TransferStatus.COMPLETED)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        pixTransferRepository.saveIfAbsent(transfer);
+
+        mockMvc.perform(get("/v1/pix/transferencias/{transactionId}", transactionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionId").value(transactionId))
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
+    void deveRetornar404QuandoTransacaoNaoEncontrada() throws Exception {
+        mockMvc.perform(get("/v1/pix/transferencias/{transactionId}", UUID.randomUUID().toString()))
+                .andExpect(status().isNotFound());
     }
 }
