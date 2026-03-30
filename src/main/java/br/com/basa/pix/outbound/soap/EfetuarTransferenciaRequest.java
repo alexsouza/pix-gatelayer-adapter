@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Data
 @XmlRootElement(name = "EfetuarTransferenciaRequest", namespace = "http://legado.basa.com.br/pix")
 @XmlAccessorType(XmlAccessType.FIELD)
-class EfetuarTransferenciaRequest {
+public class EfetuarTransferenciaRequest {
     private String chavePix;
     private BigDecimal valor;
     private String idTransacao;

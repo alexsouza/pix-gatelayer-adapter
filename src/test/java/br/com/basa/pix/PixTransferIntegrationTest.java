@@ -4,9 +4,6 @@ import br.com.basa.pix.domain.model.PixTransfer;
 import br.com.basa.pix.domain.model.TransferStatus;
 import br.com.basa.pix.domain.repository.PixTransferRepository;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.maciejwalkowiak.wiremock.spring.ConfigureWireMock;
-import com.maciejwalkowiak.wiremock.spring.EnableWireMock;
-import com.maciejwalkowiak.wiremock.spring.InjectWireMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.wiremock.spring.ConfigureWireMock;
+import org.wiremock.spring.EnableWireMock;
+import org.wiremock.spring.InjectWireMock;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,11 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@EmbeddedKafka(
-        partitions = 1,
-        topics = {"pix-transfer-events-test"},
-        brokerProperties = {"listeners=PLAINTEXT://localhost:0", "port=0"}
-)
+@EmbeddedKafka(partitions = 1, topics = { "pix-transfer-events-test" }, brokerProperties = {
+        "listeners=PLAINTEXT://localhost:0", "port=0" })
 @EnableWireMock(@ConfigureWireMock(name = "pix-soap-service"))
 class PixTransferIntegrationTest {
 
@@ -54,18 +51,18 @@ class PixTransferIntegrationTest {
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", "text/xml;charset=UTF-8")
-                                .withBody("""
-                                        <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-                                            <SOAP-ENV:Body>
-                                                <ns2:EfetuarTransferenciaResponse xmlns:ns2="http://legado.basa.com.br/pix">
-                                                    <sucesso>true</sucesso>
-                                                    <codigoRetorno>00</codigoRetorno>
-                                                    <mensagem>Transferência realizada com sucesso</mensagem>
-                                                </ns2:EfetuarTransferenciaResponse>
-                                            </SOAP-ENV:Body>
-                                        </SOAP-ENV:Envelope>
-                                        """))
-        );
+                                .withBody(
+                                        """
+                                                <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+                                                    <SOAP-ENV:Body>
+                                                        <ns2:EfetuarTransferenciaResponse xmlns:ns2="http://legado.basa.com.br/pix">
+                                                            <sucesso>true</sucesso>
+                                                            <codigoRetorno>00</codigoRetorno>
+                                                            <mensagem>Transferência realizada com sucesso</mensagem>
+                                                        </ns2:EfetuarTransferenciaResponse>
+                                                    </SOAP-ENV:Body>
+                                                </SOAP-ENV:Envelope>
+                                                """)));
     }
 
     @Test
@@ -74,15 +71,15 @@ class PixTransferIntegrationTest {
         String correlationId = UUID.randomUUID().toString();
 
         mockMvc.perform(post("/v1/pix/transferencias")
-                        .header("Idempotency-Key", idempotencyKey)
-                        .header("X-Correlation-Id", correlationId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "chavePix": "teste@email.com",
-                                    "valor": 150.00
-                                }
-                                """))
+                .header("Idempotency-Key", idempotencyKey)
+                .header("X-Correlation-Id", correlationId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "chavePix": "teste@email.com",
+                            "valor": 150.00
+                        }
+                        """))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.transactionId").isNotEmpty())
                 .andExpect(jsonPath("$.status").value("PROCESSING"));
@@ -91,14 +88,14 @@ class PixTransferIntegrationTest {
     @Test
     void deveRetornar202SemCorrelationIdEGerarUmAutomaticamente() throws Exception {
         mockMvc.perform(post("/v1/pix/transferencias")
-                        .header("Idempotency-Key", UUID.randomUUID().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "chavePix": "11999999999",
-                                    "valor": 50.00
-                                }
-                                """))
+                .header("Idempotency-Key", UUID.randomUUID().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "chavePix": "11999999999",
+                            "valor": 50.00
+                        }
+                        """))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.transactionId").isNotEmpty());
     }
@@ -106,13 +103,13 @@ class PixTransferIntegrationTest {
     @Test
     void deveRetornar400QuandoChavePixAusente() throws Exception {
         mockMvc.perform(post("/v1/pix/transferencias")
-                        .header("Idempotency-Key", UUID.randomUUID().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "valor": 100.00
-                                }
-                                """))
+                .header("Idempotency-Key", UUID.randomUUID().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "valor": 100.00
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -133,14 +130,14 @@ class PixTransferIntegrationTest {
         pixTransferRepository.saveIfAbsent(existing);
 
         mockMvc.perform(post("/v1/pix/transferencias")
-                        .header("Idempotency-Key", idempotencyKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "chavePix": "duplicado@email.com",
-                                    "valor": 10.00
-                                }
-                                """))
+                .header("Idempotency-Key", idempotencyKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "chavePix": "duplicado@email.com",
+                            "valor": 10.00
+                        }
+                        """))
                 .andExpect(status().isAccepted());
     }
 

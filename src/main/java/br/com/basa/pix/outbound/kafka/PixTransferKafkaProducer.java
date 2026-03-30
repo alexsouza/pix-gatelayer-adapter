@@ -21,6 +21,7 @@ public class PixTransferKafkaProducer {
     @Value("${pix.kafka.topic}")
     private String topic;
 
+    @SuppressWarnings("null")
     public void send(PixTransfer transfer) {
         var message = MessageBuilder
                 .withPayload(transfer)
@@ -32,7 +33,8 @@ public class PixTransferKafkaProducer {
         kafkaTemplate.send(message)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
-                        log.error("Falha ao publicar evento Pix [transactionId={}]: {}", transfer.getTransactionId(), ex.getMessage());
+                        log.error("Falha ao publicar evento Pix [transactionId={}]: {}", transfer.getTransactionId(),
+                                ex.getMessage());
                     } else {
                         log.info("Evento Pix publicado [transactionId={}, offset={}]",
                                 transfer.getTransactionId(),

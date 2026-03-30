@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @XmlRootElement(name = "EfetuarTransferenciaResponse", namespace = "http://legado.basa.com.br/pix")
 @XmlAccessorType(XmlAccessType.FIELD)
-class EfetuarTransferenciaResponse {
+public class EfetuarTransferenciaResponse {
     private boolean sucesso;
     private String codigoRetorno;
     private String mensagem;

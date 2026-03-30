@@ -27,6 +27,7 @@ public class LegacySoapPixAdapter {
         return response.isSucesso();
     }
 
+    @SuppressWarnings("unused")
     private boolean fallback(PixTransfer transfer, Throwable ex) {
         log.error("Circuit Breaker aberto para transferência [transactionId={}]: {}",
                 transfer.getTransactionId(), ex.getMessage());
